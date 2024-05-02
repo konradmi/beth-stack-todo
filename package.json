@@ -1,0 +1,19 @@
+{
+  "name": "beth-stack-todo",
+  "module": "index.ts",
+  "type": "module",
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@elysiajs/html": "^1.0.2",
+    "elysia": "^1.0.15",
+    "typed-html": "^3.0.1"
+  },
+  "scripts": {
+    "dev": "bun run --watch index.tsx"
+  }
+}
