@@ -1,4 +1,4 @@
-import { Elysia } from 'elysia'
+import { Elysia, t } from 'elysia'
 import { html } from '@elysiajs/html'
 
 const BaseHtml = (props: Html.PropsWithChildren) => {
@@ -11,8 +11,11 @@ const BaseHtml = (props: Html.PropsWithChildren) => {
           <meta name="viewport" content="width=device-width, initial-scale=1.0" />
           <title>TODO App</title>
           <script src="https://unpkg.com/htmx.org@1.9.12" integrity="sha384-ujb1lZYygJmzgSwoxRggbCHcjc0rB2XoQrxeTUQyRjrOnlCoYta87iKBWq3EsdM2" crossorigin="anonymous"></script>
+          <script src="https://cdn.tailwindcss.com"></script>
         </head>
-        <body>{props.children}</body>
+        <body class="flex w-full h-screen justify-center items-center">
+          {props.children}
+        </body>
       </html>
     </>
   );
@@ -24,13 +27,68 @@ app.use(html())
 
 app.get('/', () => (
   <BaseHtml>
-    <body>
-      <button hx-post="/clicked" hx-swap='outerHTML'>Click me</button>
+    <body
+      hx-get='/todos'
+      hx-trigger='load'
+      hx-swap='innerHTML'>
+      <button class="text-blue-600" hx-post="/clicked" hx-swap='outerHTML'>Click me</button>
     </body>
   </BaseHtml>
 ))
 
 app.post('/clicked', () => <div>I'm from the server!!!!</div>)
 
+app.get('/todos', () => <TodoList todos={db}/>)
+
+app.post('/todos/toggle/:id', (req) => {
+  const id = req.params.id
+  const todo = db.find(todo => todo.id === id)
+  if (todo) {
+    todo.completed = !todo.completed
+  }
+  return <TodoList todos={db}/>
+}, {
+  params: t.Object({
+    id: t.Numeric()
+  })
+})
+
 app.listen(3000)
 console.log(`🦊 Elysia is running at on port ${app.server?.port}...`)
+
+type Todo = {
+  id: number
+  content: string
+  completed: boolean
+}
+
+const db = [
+  { id: 1, content: 'Buy some milk', completed: false },
+  { id: 2, content: 'Go to the gym', completed: true },
+  { id: 3, content: 'Learn Elysia', completed: false },
+]
+
+const TodoItem = ({ id, content, completed }: Todo) => {
+  return (
+    <div class="flex items-center">
+      <input
+        type="checkbox"
+        checked={completed}
+        class="mr-2"
+        hx-post={`/todos/toggle/${id}`}
+        hx-target='#TodoList'
+        hx-swap='outerHTML'
+      />
+      <span class={completed ? 'line-through' : ''}>{content}</span>
+      <button class="ml-2 text-red-600">Delete</button>
+    </div>
+  ) 
+}
+
+const TodoList = ({ todos }: { todos: Todo[]}) => {
+  return (
+    <div id='TodoList'>
+      {todos.map(todo => <TodoItem {...todo} />)}
+    </div>
+  )
+}
