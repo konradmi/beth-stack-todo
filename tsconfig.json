@@ -5,7 +5,8 @@
     "module": "ESNext",
     "moduleDetection": "force",
     "jsx": "react",
-    "jsxFactory": "elements.createElement",
+    "jsxFactory": "Html.createElement",
+    "jsxFragmentFactory": "Html.Fragment",
     "allowSyntheticDefaultImports": true,
     "allowJs": true,
 
