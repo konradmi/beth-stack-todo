@@ -3,16 +3,19 @@
   "module": "index.ts",
   "type": "module",
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "drizzle-kit": "^0.20.17"
   },
   "peerDependencies": {
     "typescript": "^5.0.0"
   },
   "dependencies": {
     "@elysiajs/html": "^1.0.2",
+    "@libsql/client": "^0.6.0",
+    "drizzle-orm": "^0.30.10",
     "elysia": "^1.0.15"
   },
   "scripts": {
-    "dev": "bun run --watch index.tsx"
+    "dev": "bun run --watch src/index.tsx"
   }
 }

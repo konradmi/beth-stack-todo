@@ -53,6 +53,26 @@ app.post('/todos/toggle/:id', (req) => {
   })
 })
 
+app.delete('/todos/:id', (req) => {
+  const id = req.params.id
+  db = db.filter(todo => todo.id !== id)
+  return <TodoList todos={db}/>
+}, {
+  params: t.Object({
+    id: t.Numeric()
+  })
+})
+
+app.post('/todos', (req) => {
+  const todo = req.body
+  db.push({ id: db.length + 1, ...todo, completed: false })
+  return <TodoList todos={db}/>
+}, {
+  body: t.Object({
+    content: t.String()
+  })
+})
+
 app.listen(3000)
 console.log(`🦊 Elysia is running at on port ${app.server?.port}...`)
 
@@ -62,11 +82,23 @@ type Todo = {
   completed: boolean
 }
 
-const db = [
+let db = [
   { id: 1, content: 'Buy some milk', completed: false },
   { id: 2, content: 'Go to the gym', completed: true },
   { id: 3, content: 'Learn Elysia', completed: false },
 ]
+
+const TodoForm = () => {
+  return (
+    <form
+      hx-post='/todos'
+      hx-swap='outerHTML'
+      hx-target='#TodoList'>
+      <input type="text" name="content" class="mr-2 border-2 border-black"/>
+      <button type="submit" class="text-blue-600">Add</button>
+    </form>
+  )
+}
 
 const TodoItem = ({ id, content, completed }: Todo) => {
   return (
@@ -80,7 +112,12 @@ const TodoItem = ({ id, content, completed }: Todo) => {
         hx-swap='outerHTML'
       />
       <span class={completed ? 'line-through' : ''}>{content}</span>
-      <button class="ml-2 text-red-600">Delete</button>
+      <button
+        class="ml-2 text-red-600"
+        hx-delete={`/todos/${id}`}
+        hx-swap='outerHTML'
+        hx-target='#TodoList'
+      >Delete</button>
     </div>
   ) 
 }
@@ -89,6 +126,7 @@ const TodoList = ({ todos }: { todos: Todo[]}) => {
   return (
     <div id='TodoList'>
       {todos.map(todo => <TodoItem {...todo} />)}
+      <TodoForm />
     </div>
   )
 }
