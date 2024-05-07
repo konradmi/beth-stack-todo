@@ -1,5 +1,10 @@
 import { Elysia, t } from 'elysia'
 import { html } from '@elysiajs/html'
+import { eq } from 'drizzle-orm'
+
+import { db } from './db'
+import type { Todo } from './db/schema'
+import { todos } from './db/schema'
 
 const BaseHtml = (props: Html.PropsWithChildren) => {
   return (
@@ -38,35 +43,42 @@ app.get('/', () => (
 
 app.post('/clicked', () => <div>I'm from the server!!!!</div>)
 
-app.get('/todos', () => <TodoList todos={db}/>)
+app.get('/todos', async () => {
+  const data = await db.select().from(todos).all()
+  return <TodoList todos={data}/>
+})
 
-app.post('/todos/toggle/:id', (req) => {
+app.post('/todos/toggle/:id', async (req) => {
   const id = req.params.id
-  const todo = db.find(todo => todo.id === id)
-  if (todo) {
-    todo.completed = !todo.completed
-  }
-  return <TodoList todos={db}/>
+  const oldTodo = await db.select().from(todos).where(eq(todos.id, id)).get()
+  await db.update(todos).set({ completed: !oldTodo!.completed }).where(eq(todos.id, id)).get()
+
+  const data = await db.select().from(todos).all()
+  return <TodoList todos={data}/>
 }, {
   params: t.Object({
     id: t.Numeric()
   })
 })
 
-app.delete('/todos/:id', (req) => {
+app.delete('/todos/:id', async (req) => {
   const id = req.params.id
-  db = db.filter(todo => todo.id !== id)
-  return <TodoList todos={db}/>
+  await db.delete(todos).where(eq(todos.id, id)).run()
+
+  const data = await db.select().from(todos).all()
+  return <TodoList todos={data}/>
 }, {
   params: t.Object({
     id: t.Numeric()
   })
 })
 
-app.post('/todos', (req) => {
+app.post('/todos', async (req) => {
   const todo = req.body
-  db.push({ id: db.length + 1, ...todo, completed: false })
-  return <TodoList todos={db}/>
+  await db.insert(todos).values(todo).returning().get()
+
+  const data = await db.select().from(todos).all()
+  return <TodoList todos={data}/>
 }, {
   body: t.Object({
     content: t.String()
@@ -75,18 +87,6 @@ app.post('/todos', (req) => {
 
 app.listen(3000)
 console.log(`🦊 Elysia is running at on port ${app.server?.port}...`)
-
-type Todo = {
-  id: number
-  content: string
-  completed: boolean
-}
-
-let db = [
-  { id: 1, content: 'Buy some milk', completed: false },
-  { id: 2, content: 'Go to the gym', completed: true },
-  { id: 3, content: 'Learn Elysia', completed: false },
-]
 
 const TodoForm = () => {
   return (
