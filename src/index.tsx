@@ -17,6 +17,7 @@ const BaseHtml = (props: Html.PropsWithChildren) => {
           <title>TODO App</title>
           <script src="https://unpkg.com/htmx.org@1.9.12" integrity="sha384-ujb1lZYygJmzgSwoxRggbCHcjc0rB2XoQrxeTUQyRjrOnlCoYta87iKBWq3EsdM2" crossorigin="anonymous"></script>
           <script src="https://cdn.tailwindcss.com"></script>
+          <script src="https://unpkg.com/hyperscript.org@0.9.12"></script>
         </head>
         <body class="flex w-full h-screen justify-center items-center">
           {props.children}
@@ -51,10 +52,10 @@ app.get('/todos', async () => {
 app.post('/todos/toggle/:id', async (req) => {
   const id = req.params.id
   const oldTodo = await db.select().from(todos).where(eq(todos.id, id)).get()
-  await db.update(todos).set({ completed: !oldTodo!.completed }).where(eq(todos.id, id)).get()
+  const newTodo = await db.update(todos).set({ completed: !oldTodo!.completed }).where(eq(todos.id, id)).returning().get()
 
-  const data = await db.select().from(todos).all()
-  return <TodoList todos={data}/>
+  
+  return <TodoItem {...newTodo} />
 }, {
   params: t.Object({
     id: t.Numeric()
@@ -64,9 +65,6 @@ app.post('/todos/toggle/:id', async (req) => {
 app.delete('/todos/:id', async (req) => {
   const id = req.params.id
   await db.delete(todos).where(eq(todos.id, id)).run()
-
-  const data = await db.select().from(todos).all()
-  return <TodoList todos={data}/>
 }, {
   params: t.Object({
     id: t.Numeric()
@@ -75,10 +73,9 @@ app.delete('/todos/:id', async (req) => {
 
 app.post('/todos', async (req) => {
   const todo = req.body
-  await db.insert(todos).values(todo).returning().get()
+  const newTodo = await db.insert(todos).values(todo).returning().get()
 
-  const data = await db.select().from(todos).all()
-  return <TodoList todos={data}/>
+  return <TodoItem {...newTodo} />
 }, {
   body: t.Object({
     content: t.String()
@@ -92,8 +89,8 @@ const TodoForm = () => {
   return (
     <form
       hx-post='/todos'
-      hx-swap='outerHTML'
-      hx-target='#TodoList'>
+      hx-swap='beforebegin'
+      _='on submit target.reset()'>
       <input type="text" name="content" class="mr-2 border-2 border-black"/>
       <button type="submit" class="text-blue-600">Add</button>
     </form>
@@ -108,7 +105,7 @@ const TodoItem = ({ id, content, completed }: Todo) => {
         checked={completed}
         class="mr-2"
         hx-post={`/todos/toggle/${id}`}
-        hx-target='#TodoList'
+        hx-target='closest div'
         hx-swap='outerHTML'
       />
       <span class={completed ? 'line-through' : ''}>{content}</span>
@@ -116,7 +113,7 @@ const TodoItem = ({ id, content, completed }: Todo) => {
         class="ml-2 text-red-600"
         hx-delete={`/todos/${id}`}
         hx-swap='outerHTML'
-        hx-target='#TodoList'
+        hx-target='closest div'
       >Delete</button>
     </div>
   ) 
@@ -124,7 +121,7 @@ const TodoItem = ({ id, content, completed }: Todo) => {
 
 const TodoList = ({ todos }: { todos: Todo[]}) => {
   return (
-    <div id='TodoList'>
+    <div>
       {todos.map(todo => <TodoItem {...todo} />)}
       <TodoForm />
     </div>
